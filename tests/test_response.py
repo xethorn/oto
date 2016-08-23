@@ -1,49 +1,84 @@
+from unittest.mock import patch
+
 import pytest
 
 from oto import response
+from oto import error
 
 
 def test_response_creation():
-    message = 'Hello World'
-    resp = response.Response(response.Status.OK, message)
-    assert resp.status is response.Status.OK
-    assert resp.message is message
+    """Test the default response creation.
+    """
+
+    resp = response.Response()
+    assert not resp.message
     assert not resp.errors
+    assert resp
+    assert resp.status == 200
 
 
-def test_response_errors():
-    """Response errors should always be a dictionary.
+def test_response_creation_with_message():
+    """Test the creation of a response with a message.
     """
 
-    message = ''
-    resp = response.Response(response.Status.OK, message, errors=None)
-    assert isinstance(resp.errors, dict)
+    message = 'something'
+    resp = response.Response(message=message)
+    assert resp
+    assert resp.message == message
+    assert resp.status == 200
 
 
-def test_get_quick_access_to_message():
-    """Only works if the message is a dictionary.
+def test_response_creation_with_errors():
+    """Test the response creation with errors.
     """
 
-    message = dict(attribute='value')
-    resp = response.create_success_response(message=message)
-    assert resp.message.get('attribute') == 'value'
+    error = 'something'
+    resp = response.Response(errors=error)
+    assert not resp.message
+    assert not resp
+    assert resp.errors == error
+    assert resp.status == 400  # default
 
 
-def test_response_success():
-    resp = response.Response(response.Status.OK, '')
-    assert resp.success
+def test_response_creation_with_status():
+    """Test the response creation with a defined status.
+    Within the 200's, the response is considered valid. Above it's invalid.
+    """
 
-    resp = response.Response(response.Status.NOT_FOUND, '')
-    assert not resp.success
+    for status in range(200, 300):
+        resp = response.Response(status=status)
+        assert resp
+        assert resp.status == status
+
+    for status in range(300, 500):
+        resp = response.Response(status=status)
+        assert not resp
+        assert resp.status == status
 
 
-def test_create_success_response():
-    resp = response.create_success_response()
-    assert resp.success
-    assert resp.status is response.Status.OK
+@pytest.mark.parametrize('call, status, code', [
+    (response.create_fatal_response, 500, error.ERROR_CODE_INTERNAL_ERROR),
+    (response.create_not_found_response, 404, error.ERROR_CODE_NOT_FOUND)])
+def test_create_error_response(call, status, code):
+    """Test the creation of a fatal response.
+    """
+
+    error_message = 'something'
+
+    resp = call()
+    assert not resp
+    assert resp.status == status
+
+    resp = call(error_message)
+    assert resp.errors.get('code') == code
+    assert resp.errors.get('message') == error_message
 
 
-def test_create_error_response():
-    resp = response.create_error_response()
-    assert not resp.success
-    assert resp.status is response.Status.ERROR
+def test_custom_error_response():
+    """Test creating a custom error response.
+    """
+
+    error_message = 'something'
+    resp = response.create_error_response('code', error_message)
+    assert resp.errors.get('code') == 'code'
+    assert resp.errors.get('message') == error_message
