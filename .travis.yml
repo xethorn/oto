@@ -1,0 +1,10 @@
+language: python
+python:
+    - "3.5"
+    - "3.4"
+    - "3.3"
+
+install: "pip install -r test-requirements.txt"
+script: "py.test tests/ --cov oto --cov-report term-missing"
+after_success:
+    - coveralls
