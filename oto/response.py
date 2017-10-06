@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Response
 ========
@@ -22,7 +23,7 @@ from oto import error
 from oto import status
 
 
-class Response:
+class Response(object):
 
     def __init__(self, message=None, errors=None, status=None):
         """Create a response object.
@@ -50,6 +51,10 @@ class Response:
         """
 
         return 200 <= self.status < 300 and not self.errors
+
+    def __nonzero__(self):
+        """Backwards compatibility with Python 2."""
+        return self.__bool__()
 
 
 def create_fatal_response(message=None):
